@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webcam Motion Detector</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  #video-container {
+    display: inline-block;
+    margin: 20px;
+    border: 2px solid #333;
+  }
+  #output {
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+  <h1>Webcam Motion Detector</h1>
+  <div id="video-container">
+    <video id="webcam" autoplay playsinline></video>
+  </div>
+  <div id="output"></div>
+
+  <script>
+    // Get access to the webcam and set up motion detection
+    async function setupCamera() {
+      const webcam = document.getElementById('webcam');
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        webcam.srcObject = stream;
+        return new Promise(resolve => webcam.onloadedmetadata = resolve);
+      } catch (error) {
+        console.error('Error accessing webcam:', error);
+      }
+    }
+
+    // Detect motion in the webcam feed
+    function detectMotion() {
+      const webcam = document.getElementById('webcam');
+      const output = document.getElementById('output');
+      
+      let previousFrame = null;
+
+      function processFrame() {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = webcam.videoWidth;
+        canvas.height = webcam.videoHeight;
+
+        context.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+        const currentFrame = context.getImageData(0, 0, canvas.width, canvas.height).data;
+
+        if (previousFrame) {
+          // Compare currentFrame and previousFrame for motion detection
+          // You can implement your motion detection algorithm here
+          // For simplicity, this example will just compare the frames' pixel data
+
+          let motionDetected = false;
+          for (let i = 0; i < currentFrame.length; i++) {
+            if (Math.abs(currentFrame[i] - previousFrame[i]) > 20) {
+              motionDetected = true;
+              break;
+            }
+          }
+
+          output.innerText = motionDetected ? 'Motion detected!' : 'No motion';
+        }
+
+        previousFrame = currentFrame;
+
+        requestAnimationFrame(processFrame);
+      }
+
+      processFrame();
+    }
+
+    async function startApp() {
+      await setupCamera();
+      detectMotion();
+    }
+
+    startApp();
+  </script>
+</body>
+</html>

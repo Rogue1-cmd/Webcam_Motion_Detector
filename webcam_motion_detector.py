@@ -1,29 +1,37 @@
 import cv2, time, pandas
 from datetime import datetime
 
+# Initialize variables
 first_frame=None
-
 status_list = [None, None]
 times=[]
 df = pandas.DataFrame(columns=["Start", "End"])
 
+# Open the webcam
 video=cv2.VideoCapture(0)
 
 while True:
-
+    # Capture a frame from the webcam   
     check, frame=video.read()
     status = 0
+
+    # Convert the frame to grayscale and apply Gaussian blur
     gray=cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray=cv2.GaussianBlur(gray, (21,21),0)
 
+    # Set the first frame for reference
     if first_frame is None:
         first_frame=gray
         continue
 
+    # Calculate the difference between the current frame and the first frame
     delta_frame=cv2.absdiff(first_frame, gray)
+
+    # Apply thresholding to the difference frame
     thresh_frame=cv2.threshold(delta_frame, 30, 255, cv2.THRESH_BINARY)[1]
     threshold_frame=cv2.dilate(thresh_frame, None, iterations=2)
 
+    # Find contours in the thresholded frame
     (cnts,_)=cv2.findContours(thresh_frame.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     for countour in cnts:
@@ -31,6 +39,7 @@ while True:
             continue
         status = 1
 
+        # Draw rectangles around the detected motion
         (x, y, w, h)=cv2.boundingRect(countour)
         cv2.rectangle(frame, (x,y), (x+w, y+h), (0, 255, 1), 3)
     status_list.append(status)
@@ -41,12 +50,14 @@ while True:
         times.append(datetime.now())
     if status_list[-1]==0 and status_list[-2]==1:
         times.append(datetime.now())
-
+        
+    # Display various frames for debugging    
     cv2.imshow('Gray Frame', gray)
     cv2.imshow('Delta Frame',delta_frame)
     cv2.imshow('Threshold Frame', thresh_frame)
     cv2.imshow('color Frame', frame)    
 
+    # Press 'q' to exit the application
     key=cv2.waitKey(1)
     #print(gray)
     #print(delta_frame)
@@ -59,10 +70,14 @@ while True:
     #print(status)
     #print(status_list)
     print(times)
+
+# Create a DataFrame and save motion event times to a CSV file
 for i in range(0, len(times), 2):
     df = df.append({"Start":times[i], "End":times[i+1]}, ignore_index = True)
 
 df.to_csv("Times.csv")
 
+
+# Release the webcam and close all windows
 video.release()
 cv2.destroyAllWindows
